@@ -13,7 +13,7 @@
 // Assim um mesmo cliente respondendo uma vez nunca marca dois disparos.
 //
 // "Resposta" aqui é qualquer mensagem recebida — inclusive o clique no botão
-// "Acessar" do template (decisão do Pedro em 2026-07-27).
+// "Acessar" do template (decidido com o cliente em 2026-07-27).
 import type { EventRow } from './events'; // só tipo: evita import circular com events.ts
 import type { EventOut } from './db';     // idem (db.ts importa daqui em runtime)
 import { brDay, brIso } from './derive';

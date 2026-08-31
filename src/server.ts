@@ -77,9 +77,9 @@ function parsePeriod(req: Request): Period | { error: string } {
 function segmentToBots(seg?: string): number[] | undefined {
   if (seg === 'novos') return [SEGMENTS.novos.bot];
   if (seg === 'recorrentes') return [SEGMENTS.recorrentes.bot];
-  // 'welcome' e 'carrinho' agora são SÓ o fluxo novo (decisão do Pedro
-  // 2026-08-28: tudo centralizado). O histórico dos bots antigos continua no
-  // banco — puxa retroativamente com segment=ambos|novos|recorrentes|carrinho_antigo.
+  // 'welcome' e 'carrinho' agora são SÓ o fluxo novo (2026-08-28: tudo
+  // centralizado). O histórico dos bots antigos continua no banco — puxa
+  // retroativamente com segment=ambos|novos|recorrentes|carrinho_antigo.
   if (seg === 'welcome') return [SEGMENTS.fluxo_welcome.bot];
   if (seg === 'carrinho') return [SEGMENTS.fluxo_carrinho.bot];
   if (seg === 'ambos') return [SEGMENTS.novos.bot, SEGMENTS.recorrentes.bot];
