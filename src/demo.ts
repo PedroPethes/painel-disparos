@@ -17,18 +17,27 @@ function rng(seed: number): () => number {
 }
 
 const DAYS_BACK = 60;
+// Uma entrada por visão do painel. Os três últimos são os bots antigos do Mongo,
+// que saíram do seletor mas seguem acessíveis pela API (segment=novos|recorrentes|
+// ambos|carrinho_antigo) — por isso o demo também os gera, em volume menor.
 const BOTS = [
-  { bot: 1201, base: 320, spread: 90, resp: 0.26 }, // Welcome Novos
-  { bot: 1200, base: 46, spread: 22, resp: 0.31 }, // Welcome Recorrentes
-  { bot: 185, base: 28, spread: 16, resp: 0.37 }, // Carrinho Abandonado
+  { bot: 9101, base: 310, spread: 90, resp: 0.28 }, // Welcome
+  { bot: 9102, base: 165, spread: 60, resp: 0.19 }, // Welcome TOF
+  { bot: 9103, base: 90, spread: 35, resp: 0.34 }, // Carrinho Abandonado
+  { bot: 9104, base: 55, spread: 25, resp: 0.22 }, // Up-sell
+  { bot: 9105, base: 210, spread: 70, resp: 0.12 }, // PageView
+  { bot: 9001, base: 900, spread: 260, resp: 0.16 }, // Disparos
+  { bot: 1201, base: 60, spread: 25, resp: 0.26 }, // histórico: Welcome Novos
+  { bot: 1200, base: 24, spread: 12, resp: 0.31 }, // histórico: Welcome Recorrentes
+  { bot: 185, base: 18, spread: 10, resp: 0.37 }, // histórico: Carrinho (antigo)
 ];
 const VENDEDORES = [
   { id: 1, nome: 'Ana Souza' }, { id: 2, nome: 'Bruno Lima' }, { id: 3, nome: 'Carla Dias' },
   { id: 4, nome: 'Diego Melo' }, { id: 5, nome: 'Eduarda Rocha' }, { id: 6, nome: 'Felipe Nunes' },
   { id: 7, nome: 'Gabriela Alves' },
 ];
-// Peso de origem dos leads por bot (Novos concentra mais, igual ao volume de disparos).
-const LEAD_BOT_WEIGHT: Record<number, number> = { 1201: 0.55, 1200: 0.25, 185: 0.2 };
+// Peso de origem dos leads por bot (Welcome concentra mais, igual ao volume de disparos).
+const LEAD_BOT_WEIGHT: Record<number, number> = { 9101: 0.5, 9102: 0.2, 9103: 0.2, 9104: 0.1 };
 
 function brDayNDaysAgo(n: number): string {
   const d = new Date(Date.now() - 3 * 3600 * 1000);
@@ -73,7 +82,9 @@ function buildLeads(): LeadDaily[] {
       const dayTotal = Math.max(0, Math.round((base - 3 + rand() * 12) * (isWeekend ? 0.4 : 1)));
       if (dayTotal === 0) continue;
       for (const b of BOTS) {
-        const total = Math.round(dayTotal * LEAD_BOT_WEIGHT[b.bot] * (0.7 + rand() * 0.6));
+        const peso = LEAD_BOT_WEIGHT[b.bot] ?? 0; // bot sem lead atribuído fica de fora
+        if (peso === 0) continue;
+        const total = Math.round(dayTotal * peso * (0.7 + rand() * 0.6));
         if (total > 0) out.push({ vendedor_id: v.id, vendedor_nome: v.nome, dia, bot: b.bot, total });
       }
     }

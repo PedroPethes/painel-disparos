@@ -113,8 +113,9 @@ app.get('/api/eventos', requireAuth, rateLimit, async (req: Request, res: Respon
   const etapaRaw = req.query.etapa as string;
   const etapa: Etapa | undefined = etapaRaw && etapaRaw !== 'todas' ? (etapaRaw as Etapa) : undefined;
   // O log do agente NÃO está no banco (volume grande demais) — é montado na hora
-  // lendo o worker payload-sink. Só vale quando a visão é só dele.
-  const soAgente = !!bots && bots.length === 1 && bots[0] === AGENTE_BOT;
+  // lendo o worker payload-sink. Só vale quando a visão é só dele e quando há
+  // worker pra ler: nos modos demo/ao vivo o log sai da mesma fonte dos outros.
+  const soAgente = mode() === 'store' && !!bots && bots.length === 1 && bots[0] === AGENTE_BOT;
   const etapaAgente = etapa === 'disparo' || etapa === 'resposta' ? etapa : undefined;
 
   try {

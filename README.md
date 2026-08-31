@@ -328,12 +328,16 @@ Usa `SEU_TOKEN` como placeholder — o token real vai por canal separado.
 Sem nenhuma variável de ambiente o servidor sobe em **modo demo**: painel e API
 funcionam com **dados 100% fictícios** gerados em memória por um PRNG determinístico
 (`src/demo.ts`) — números, telefones e nomes de vendedores são todos de exemplo.
-Não precisa de banco, Metabase nem token:
+Não precisa de banco, Metabase, workers nem token:
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000 — acesso livre, sem token
 ```
+
+Abre direto no painel, com **as seis visões preenchidas** (Welcome, Welcome TOF,
+Carrinho Abandonado, Up-sell, PageView e Disparos): funil, cards, gráficos diários,
+tabela de log paginada e exportação em CSV, com 60 dias de histórico.
 
 A lógica de requisições, derivação e agregação é exatamente a mesma dos modos
 reais — só a fonte dos dados muda.
