@@ -1,0 +1,28 @@
+# Configuração reconstruída para a versão pública — ids reais substituídos.
+name = "fluxos-worker"
+main = "src/index.js"
+compatibility_date = "2026-08-25"
+
+[observability]
+enabled = true
+
+# D1 com o log de disparos (schema em schema.sql)
+[[d1_databases]]
+binding = "DB"
+database_name = "fluxos-logs"
+database_id = "SEU-DATABASE-ID"
+
+[vars]
+# Webhook usado quando o payload não casa com nenhuma rota (vazio = não encaminha)
+WEBHOOK_DEFAULT = ""
+
+# Service binding para o classificador de fallback (novo/recorrente)
+[[services]]
+binding = "WELCOME_WORKER"
+service = "welcome-worker"
+environment = "production"
+
+# Secrets (configurar com `wrangler secret put <NOME>`):
+#   HUBSPOT_TOKEN  - private app token do HubSpot (classificação novo/recorrente)
+#   METRICS_TOKEN  - token só-leitura dos GET /export e /logs (usado pelo painel)
+#   INGEST_TOKEN   - (opcional) token exigido no POST de ingestão

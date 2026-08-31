@@ -57,6 +57,9 @@ Projeto independente do dashboard de leads (`leads-metrics`).
 - **Deploy atual:** **serviço único** no Railway — a API e a ingestão diária rodam no mesmo
   processo (`INGEST_IN_PROCESS=1`). O passo a passo (e a variante de **dois serviços**, que tira
   a credencial do Metabase da superfície pública) está em [`DEPLOY.md`](./DEPLOY.md).
+- **Worker de fluxos:** o código do Worker Cloudflare que origina os disparos das
+  visões de fluxo (roteamento por fluxo, classificação novo/recorrente via HubSpot,
+  log em D1) está em [`worker-fluxos/`](./worker-fluxos/).
 
 > **Por que um store?** O MongoDB não é exposto ao cliente; a API entrega só o mínimo. Como há
 > **telefone (PII)**, o store isola o que é exposto do resto do banco da plataforma.
@@ -315,6 +318,7 @@ migrations/001_init.sql  # schema (events + leads + agente_diario + ingest_runs)
 dashboard/index.html     # painel (opção C: funil + tabela + CSV, por visão)
 test/                    # unit + integração (coorte × log, idempotência, resposta tardia)
 docs/specs/              # spec de design
+worker-fluxos/           # Worker Cloudflare: origem dos disparos das visões de fluxo
 DEPLOY.md                # deploy no Railway (serviço único e variante de 2 serviços)
 ```
 
