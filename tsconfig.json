@@ -12,5 +12,7 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  // browser-demo.ts é do navegador (DOM, sem Node) e é compilado só pelo
+  // esbuild em `npm run build:pages` — ver tsconfig.browser.json.
+  "exclude": ["node_modules", "dist", "src/browser-demo.ts"]
 }

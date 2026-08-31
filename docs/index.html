@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<!-- painel-disparos · painel opção C (funil + log de eventos) · visões por produto -->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disparos & Respostas — demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
+
+    header {
+      background: #1a1a2e; color: #fff; padding: 20px 32px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    header h1 { font-size: 22px; font-weight: 700; }
+    .header-right { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .header-right label { font-size: 13px; color: #aaa; display: block; margin-bottom: 4px; }
+    .header-right input, .header-right select {
+      padding: 8px 12px; border-radius: 6px; border: 1px solid #444;
+      background: #2d2d4e; color: #fff; font-size: 13px;
+    }
+    .header-right select { min-width: 200px; }
+    .date-wrap input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+    .date-visual {
+      padding: 8px 12px; border-radius: 6px; border: 1px solid #444;
+      background: #2d2d4e; color: #fff; font-size: 13px; width: 130px;
+      display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+    }
+    .date-visual .arrow { font-size: 10px; opacity: 0.6; }
+    .btn-search {
+      background: #27ae60; color: #fff; border: none; padding: 8px 20px;
+      border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;
+    }
+    .btn-search:hover { background: #219a52; }
+    .last-update { font-size: 12px; color: #9aa0b4; align-self: center; white-space: nowrap; }
+
+    .content { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+    .card { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card .value { font-size: 38px; font-weight: 700; color: #1a1a2e; margin-top: 4px; }
+    .card .sub { font-size: 13px; color: #666; margin-top: 4px; }
+
+    /* ---- Funil ---- */
+    .funnel-card, .table-card, .chart-card {
+      background: #fff; border-radius: 10px; padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px;
+    }
+    .funnel-card > h3, .table-card .table-head h3, .chart-card h3 { font-size: 15px; color: #1a1a2e; margin-bottom: 16px; }
+    .funnel-card .scope { font-weight: 400; color: #888; font-size: 13px; }
+    .funnel { display: flex; flex-direction: column; gap: 14px; }
+    .stage-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-size: 14px; }
+    .stage-top .sv b { font-size: 20px; color: #1a1a2e; font-variant-numeric: tabular-nums; }
+    .stage-top .sv small { color: #888; margin-left: 6px; }
+    .bar { height: 38px; border-radius: 8px; display: flex; align-items: center; padding-left: 14px; font-size: 12px; font-weight: 700; color: #fff; transition: width .4s ease; }
+    .bar.disp { background: linear-gradient(90deg,#3498db,#2980b9); width: 100%; }
+    .bar.resp { background: linear-gradient(90deg,#27ae60,#1e8e50); }
+    .bar.vend { background: repeating-linear-gradient(45deg,#eee,#eee 8px,#e3e3e3 8px,#e3e3e3 16px); color: #999; border: 1px dashed #bbb; width: 60%; }
+    .drop { font-size: 11px; color: #999; margin-top: 5px; }
+
+    .segments { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .seg-card { background: #fff; border-radius: 10px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 5px solid #ccc; }
+    .seg-card.novos { border-left-color: #3498db; }
+    .seg-card.recorrentes { border-left-color: #e67e22; }
+    .seg-card.carrinho { border-left-color: #8e44ad; }
+    .seg-card.agente { border-left-color: #16a085; }
+    .seg-card.fluxo_welcome { border-left-color: #1abc9c; }
+    .seg-card.welcometof { border-left-color: #f39c12; }
+    .seg-card.fluxo_carrinho { border-left-color: #9b59b6; }
+    .seg-card.upsell { border-left-color: #e74c3c; }
+    .seg-card.pageview { border-left-color: #34495e; }
+    .seg-card .seg-name { font-size: 15px; font-weight: 700; color: #1a1a2e; margin-bottom: 12px; }
+    .seg-stats { display: flex; gap: 24px; }
+    .seg-stats .stat .n { font-size: 24px; font-weight: 700; color: #1a1a2e; }
+    .seg-stats .stat .t { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    .charts { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
+    .chart-card canvas { width: 100% !important; max-height: 340px; }
+
+    /* ---- Tabela de log ---- */
+    .table-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+    .table-controls { display: flex; gap: 10px; align-items: center; }
+    .table-controls select { padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; }
+    .btn-csv { background: #eaf4ff; border: 1px solid #b6d8ff; color: #1f6feb; font-size: 13px; padding: 7px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .btn-csv:hover { background: #dcecff; }
+    table.log { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.log th { text-align: left; color: #888; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; border-bottom: 2px solid #eee; }
+    table.log td { padding: 9px 10px; border-bottom: 1px solid #f0f0f0; }
+    table.log td.mono { font-variant-numeric: tabular-nums; color: #555; }
+    .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; display: inline-block; }
+    .badge.disparo { background: #eaf4ff; color: #2980b9; }
+    .badge.resposta { background: #eafbf1; color: #1e8e50; }
+    .badge.vendedor { background: #fff4e5; color: #c87f1a; }
+    .seg-novos { color: #2980b9; } .seg-recorrentes { color: #c8721a; } .seg-carrinho { color: #8e44ad; } .seg-agente { color: #16a085; }
+    .seg-welcometof { color: #d68910; } .seg-upsell { color: #c0392b; } .seg-pageview { color: #34495e; } .seg-fluxo { color: #148f77; }
+    .table-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: #888; font-size: 13px; }
+    .table-foot button { border: 1px solid #ccc; background: #fff; border-radius: 6px; padding: 4px 12px; cursor: pointer; margin-left: 6px; }
+    .table-foot button:disabled { opacity: .4; cursor: default; }
+
+    /* ---- Leads por vendedor ---- */
+    .leads-card { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
+    .leads-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .leads-head h3 { font-size: 15px; color: #1a1a2e; }
+    .leads-head label { font-size: 13px; color: #888; margin-right: 8px; }
+    .leads-summary { grid-template-columns: 1fr 1fr !important; }
+
+    .loading { text-align: center; color: #888; padding: 40px; }
+
+    .nota {
+      background: #eefaf7; border: 1px solid #cdeee6; border-left: 5px solid #16a085;
+      border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+      font-size: 13px; color: #4a6763; line-height: 1.6;
+    }
+
+    /* ---- Portão de token ---- */
+    .gate { position: fixed; inset: 0; background: rgba(26,26,46,.96); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .gate-box { background: #fff; border-radius: 12px; padding: 32px; width: 340px; max-width: 90%; text-align: center; }
+    .gate-box h2 { font-size: 18px; color: #1a1a2e; margin-bottom: 6px; }
+    .gate-box p { font-size: 13px; color: #777; margin-bottom: 16px; }
+    .gate-box input { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+    .gate-box button { width: 100%; background: #27ae60; color: #fff; border: none; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .gate-err { color: #e74c3c; font-size: 12px; margin-top: 10px; min-height: 16px; }
+
+    @media (max-width: 768px) {
+      .summary, .segments { grid-template-columns: 1fr; }
+      header { flex-direction: column; align-items: stretch; }
+      .header-right { width: 100%; }
+    }
+  </style>
+  <script src="./demo-api.js"></script>
+</head>
+<body>
+
+<div id="tokenGate" class="gate" style="display:none">
+  <div class="gate-box">
+    <h2>Acesso restrito</h2>
+    <p>Informe o token de acesso ao painel.</p>
+    <input id="tokenInput" type="password" placeholder="token de acesso" onkeydown="if(event.key==='Enter')saveToken()">
+    <button onclick="saveToken()">Entrar</button>
+    <div id="tokenErr" class="gate-err"></div>
+  </div>
+</div>
+
+<div style="background:#fff4d6;border-bottom:1px solid #f0d9a0;padding:10px 32px;font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#5c4813">
+  <strong>Demonstração.</strong> Este é o painel real de um projeto em produção, rodando aqui com
+  <strong>dados fictícios</strong> gerados no seu navegador — nenhum número, telefone ou nome nesta
+  página é de cliente. Todas as visões, filtros, gráficos, paginação e o CSV funcionam.
+  <a href="https://github.com/PedroPethes/painel-disparos" style="color:#8a6d1f">Ver o código no GitHub</a>.
+</div>
+
+<header>
+  <h1>Disparos & Respostas</h1>
+  <div class="header-right">
+    <div>
+      <label>Inicio</label>
+      <div class="date-visual" onclick="document.getElementById('startDate').showPicker()">
+        <span id="startLabel">--/--/----</span><span class="arrow">&#9660;</span>
+      </div>
+      <input type="date" id="startDate" style="position:absolute;opacity:0;pointer-events:none;">
+    </div>
+    <div>
+      <label>Fim</label>
+      <div class="date-visual" onclick="document.getElementById('endDate').showPicker()">
+        <span id="endLabel">--/--/----</span><span class="arrow">&#9660;</span>
+      </div>
+      <input type="date" id="endDate" style="position:absolute;opacity:0;pointer-events:none;">
+    </div>
+    <div>
+      <label>Visão</label>
+      <select id="segment" onchange="onSegmentChange()">
+        <option value="welcome">Welcome</option>
+        <option value="welcometof">Welcome TOF</option>
+        <option value="carrinho">Carrinho Abandonado</option>
+        <option value="upsell">Up-sell</option>
+        <option value="pageview">PageView</option>
+        <option value="agente">Disparos</option>
+      </select>
+    </div>
+    <button class="btn-search" onclick="search()">Pesquisar</button>
+    <span id="lastUpdate" class="last-update" title="O painel se atualiza sozinho a cada 5 minutos"></span>
+  </div>
+</header>
+
+<div class="content">
+  <div id="status" class="loading">Carregando...</div>
+
+  <div class="summary" id="summary" style="display:none"></div>
+
+  <div class="funnel-card" id="funnelWrap" style="display:none">
+    <h3>Funil <span class="scope" id="funnelScope"></span></h3>
+    <div class="funnel" id="funnel"></div>
+  </div>
+
+  <div class="segments" id="segments" style="display:none"></div>
+
+  <div class="charts" id="chartsWrap" style="display:none">
+    <div class="chart-card"><h3>Disparos por dia</h3><canvas id="dispChart"></canvas></div>
+    <div class="chart-card"><h3>Respostas por dia</h3><canvas id="respChart"></canvas></div>
+    <div class="chart-card"><h3>Taxa de Resposta por dia (%)</h3><canvas id="taxaChart"></canvas></div>
+  </div>
+
+  <div class="leads-card" id="leadsWrap" style="display:none">
+    <div class="leads-head">
+      <h3>Leads por Vendedor</h3>
+      <div class="table-controls">
+        <label for="vendorFilter">Vendedor</label>
+        <select id="vendorFilter" onchange="renderLeads()"><option value="all">Todos</option></select>
+      </div>
+    </div>
+    <div class="summary leads-summary" id="leadsSummary"></div>
+    <div class="charts">
+      <div class="chart-card"><h3>Leads por vendedor no período</h3><canvas id="leadsBar"></canvas></div>
+      <div class="chart-card"><h3>Evolução de leads no período</h3><canvas id="leadsTimeline"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-card" id="tableWrap" style="display:none">
+    <div class="table-head">
+      <h3>Log de eventos</h3>
+      <div class="table-controls">
+        <select id="etapaFilter" onchange="loadEvents(0)">
+          <option value="todas">Todas as etapas</option>
+          <option value="disparo">Só disparos</option>
+          <option value="resposta">Só respostas</option>
+        </select>
+        <button class="btn-csv" onclick="downloadCsv()">&#11015; Exportar CSV</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="log">
+        <thead><tr><th>Data / Hora</th><th>Segmento</th><th>Etapa</th><th>Telefone</th></tr></thead>
+        <tbody id="eventsBody"></tbody>
+      </table>
+    </div>
+    <div class="table-foot">
+      <span id="eventsInfo">—</span>
+      <span class="pg">
+        <button id="prevBtn" onclick="loadEvents(page-1)">&lsaquo; Anterior</button>
+        <button id="nextBtn" onclick="loadEvents(page+1)">Próximo &rsaquo;</button>
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+// Segmentos (um bot cada). Cada visão do dropdown agrupa 1+ segmentos.
+const SEG_META = {
+  novos:          { bot: 1201, label: 'Welcome Novos',        color: '#3498db' },
+  recorrentes:    { bot: 1200, label: 'Welcome Recorrentes',  color: '#e67e22' },
+  carrinho:       { bot: 185,  label: 'Carrinho (antigo)',    color: '#8e44ad' },
+  agente:         { bot: 9001, label: 'Disparos',             color: '#16a085' },
+  // Fluxos novos: disparos vêm do worker fluxos-worker (bots sintéticos 910x).
+  fluxo_welcome:  { bot: 9101, label: 'Welcome',               color: '#1abc9c' },
+  welcometof:     { bot: 9102, label: 'Welcome TOF',           color: '#f39c12' },
+  fluxo_carrinho: { bot: 9103, label: 'Carrinho Abandonado',   color: '#9b59b6' },
+  upsell:         { bot: 9104, label: 'Up-sell',               color: '#e74c3c' },
+  pageview:       { bot: 9105, label: 'PageView',              color: '#34495e' },
+};
+const VIEWS = {
+  // Welcome centralizado: só o fluxo novo do worker. O histórico dos bots
+  // antigos (novos/recorrentes) segue guardado no banco — dá pra puxar
+  // retroativamente pela API com segment=ambos|novos|recorrentes.
+  welcome:    { label: 'Welcome',            segs: ['fluxo_welcome'],                         segment: 'welcome', semLeads: true },
+  welcometof: { label: 'Welcome TOF',        segs: ['welcometof'],                            segment: 'welcometof', semLeads: true },
+  carrinho:   { label: 'Carrinho Abandonado', segs: ['fluxo_carrinho'],                       segment: 'carrinho', semLeads: true },
+  upsell:     { label: 'Up-sell',            segs: ['upsell'],                                segment: 'upsell', semLeads: true },
+  pageview:   { label: 'PageView',           segs: ['pageview'],                              segment: 'pageview', semLeads: true },
+  // Vem do worker payload-sink: não tem leads por vendedor. O log existe, mas é
+  // buscado no worker na hora (não fica guardado no banco).
+  agente:     { label: 'Disparos',           segs: ['agente'],                                segment: 'agente', semLeads: true,
+                subDisparos: 'entregues (confirmado pela Meta)', labelDisparo: 'Disparo entregue' },
+};
+const BOT_TO_SEG = {};
+Object.keys(SEG_META).forEach(s => { BOT_TO_SEG[SEG_META[s].bot] = s; });
+
+let DATA = null;
+let LEADS = null;
+let curStart = '', curEnd = '';
+let page = 0, eventsTotal = 0;
+const PAGE = 50;
+const charts = {};
+const LEAD_COLORS = ['#1a1a2e','#3498db','#27ae60','#e74c3c','#f39c12','#9b59b6','#1abc9c','#e67e22','#2ecc71','#e91e63','#34495e','#16a085'];
+
+// ---- token ----
+function getToken() { return localStorage.getItem('apiToken') || ''; }
+function showGate(msg) { document.getElementById('tokenErr').textContent = msg || ''; document.getElementById('tokenGate').style.display = 'flex'; }
+function hideGate() { document.getElementById('tokenGate').style.display = 'none'; }
+function saveToken() {
+  const v = document.getElementById('tokenInput').value.trim();
+  if (!v) { document.getElementById('tokenErr').textContent = 'Digite o token.'; return; }
+  localStorage.setItem('apiToken', v); hideGate(); search();
+}
+function clearToken() { localStorage.removeItem('apiToken'); }
+
+async function authFetch(url) {
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + getToken() } });
+  if (res.status === 401) { clearToken(); showGate('Token inválido.'); throw new Error('não autorizado'); }
+  if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || ('HTTP ' + res.status)); }
+  return res;
+}
+
+// ---- date helpers ----
+function isoToBR(iso) { if (!iso) return '--/--/----'; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function dayShort(iso) { const [, m, d] = iso.split('-'); return `${d}/${m}`; }
+function addDay(iso) { return shiftDay(iso, 1); }
+function shiftDay(iso, n) { const dt = new Date(`${iso}T00:00:00Z`); dt.setUTCDate(dt.getUTCDate() + n); return dt.toISOString().slice(0, 10); }
+function rangeDays(start, end) { const out = []; let c = start, g = 0; while (c <= end && g++ < 400) { out.push(c); c = addDay(c); } return out; }
+function fmt(n) { return Number(n).toLocaleString('pt-BR'); }
+function fmtPct(n) { return n.toFixed(1).replace('.', ',') + '%'; }
+
+// TUDO no painel é dia de BRASÍLIA (UTC-3), igual ao servidor — nunca o relógio
+// de quem abre a página, nem UTC. Sem isso o painel divergia em dois casos:
+// depois das 21h (UTC já virou o dia, e "hoje" aparecia como amanhã, vazio) e
+// para quem abrisse de outro fuso.
+function brToday() { return new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10); }
+function brNowHHMM() {
+  return new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(11, 16);
+}
+
+// default: últimos 7 dias (em dias de Brasília)
+const todayISO = brToday();
+const startISO = shiftDay(todayISO, -6);
+document.getElementById('startDate').value = startISO;
+document.getElementById('endDate').value = todayISO;
+document.getElementById('startLabel').textContent = isoToBR(startISO);
+document.getElementById('endLabel').textContent = isoToBR(todayISO);
+document.getElementById('startDate').addEventListener('change', function () { document.getElementById('startLabel').textContent = isoToBR(this.value); });
+document.getElementById('endDate').addEventListener('change', function () { document.getElementById('endLabel').textContent = isoToBR(this.value); });
+
+// boot — em modo demo (sem banco) o servidor libera o acesso e o painel pula o portão de token.
+async function boot() {
+  try {
+    const h = await fetch(`${API}/health`).then(r => r.json());
+    if (h && h.demo) { localStorage.setItem('apiToken', 'demo'); hideGate(); search(); return; }
+  } catch (e) { /* segue pro fluxo com token */ }
+  if (getToken()) search(); else showGate('');
+}
+boot();
+
+// O servidor refaz o dia de hoje a cada 5 min; a página acompanha no mesmo
+// ritmo, senão o número na tela envelhece sem ninguém perceber (foi assim que o
+// Carrinho ficou marcando 103 enquanto o worker já tinha mandado 215).
+const REFRESH_MS = 5 * 60 * 1000;
+
+// Igual ao Pesquisar, mas sem tirar o usuário do lugar: mantém o período, a
+// visão e a página do log em que ele está. Silencioso — não pisca "Carregando"
+// nem apaga a tela se a rede falhar; nesse caso fica o dado anterior.
+async function autoRefresh() {
+  if (!getToken() || !curStart || !curEnd) return;
+  if (document.hidden) return; // aba em segundo plano: espera voltar pra tela
+  try {
+    const res = await authFetch(`${API}/api/funil?startDate=${curStart}&endDate=${curEnd}`);
+    const json = await res.json();
+    DATA = shape(json.daily, curStart, curEnd);
+    render();
+    await loadEvents(page); // mesma página, não volta pro começo
+    await loadLeads();
+    marcarAtualizacao();
+  } catch (e) {
+    console.error('auto-refresh falhou (mantendo os dados na tela):', e);
+  }
+}
+
+function marcarAtualizacao() {
+  const el = document.getElementById('lastUpdate');
+  if (el) el.textContent = `atualizado ${brNowHHMM()}`;
+}
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden) autoRefresh(); });
+setInterval(autoRefresh, REFRESH_MS);
+
+function setStatus(msg) {
+  const el = document.getElementById('status');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+  ['summary', 'funnelWrap', 'segments', 'chartsWrap', 'tableWrap', 'leadsWrap'].forEach(id => { document.getElementById(id).style.display = msg ? 'none' : ''; });
+}
+
+function currentView() { return VIEWS[document.getElementById('segment').value] || VIEWS.welcome; }
+
+async function search() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  if (!startDate || !endDate) { setStatus('Selecione as datas de início e fim.'); return; }
+  if (startDate > endDate) { setStatus('A data de início deve ser anterior à de fim.'); return; }
+  curStart = startDate; curEnd = endDate;
+  setStatus('Carregando...');
+  try {
+    const res = await authFetch(`${API}/api/funil?startDate=${startDate}&endDate=${endDate}`);
+    const json = await res.json();
+    DATA = shape(json.daily, startDate, endDate);
+    render();
+    loadEvents(0);
+    loadLeads();
+    marcarAtualizacao();
+  } catch (e) { console.error(e); setStatus('Erro ao carregar: ' + e.message); }
+}
+
+function shape(rows, start, end) {
+  const days = rangeDays(start, end);
+  const byDay = {};
+  days.forEach(d => { byDay[d] = {}; Object.keys(SEG_META).forEach(s => { byDay[d][s] = { d: 0, r: 0 }; }); });
+  (rows || []).forEach(row => {
+    const seg = BOT_TO_SEG[row.bot];
+    if (!seg || !byDay[row.day]) return;
+    byDay[row.day][seg].d += Number(row.disparos);
+    byDay[row.day][seg].r += Number(row.respostas);
+  });
+  return { days, byDay };
+}
+
+// Soma disparos/respostas de um conjunto de segmentos no período carregado.
+function sumSegs(segs) {
+  let d = 0, r = 0;
+  DATA.days.forEach(day => segs.forEach(s => { const c = DATA.byDay[day][s]; d += c.d; r += c.r; }));
+  return { d, r, taxa: d > 0 ? (r / d * 100) : 0 };
+}
+
+function render() {
+  if (!DATA) return;
+  setStatus('');
+  const view = currentView();
+  const segs = view.segs;
+  // Leads por vendedor não existem na visão de Disparos (fonte diferente).
+  document.getElementById('leadsWrap').style.display = view.semLeads ? 'none' : '';
+  document.getElementById('tableWrap').style.display = view.semLog ? 'none' : '';
+  renderSummary(view, segs);
+  renderFunnel(view, sumSegs(segs));
+  renderSegments(segs);
+  renderCharts(segs);
+}
+
+function onSegmentChange() { render(); loadEvents(0); loadLeads(); }
+
+function renderSummary(view, segs) {
+  const t = sumSegs(segs);
+  document.getElementById('summary').innerHTML = `
+    <div class="card"><div class="label">Disparos</div><div class="value">${fmt(t.d)}</div><div class="sub">${view.subDisparos || view.label}</div></div>
+    <div class="card"><div class="label">Respostas</div><div class="value">${fmt(t.r)}</div><div class="sub">clientes que responderam</div></div>
+    <div class="card"><div class="label">Taxa de Resposta</div><div class="value">${fmtPct(t.taxa)}</div><div class="sub">${fmt(t.r)} de ${fmt(t.d)}</div></div>`;
+}
+
+function renderFunnel(view, t) {
+  document.getElementById('funnelScope').textContent = '· ' + view.label;
+  const respPct = t.d ? (t.r / t.d * 100) : 0;
+  document.getElementById('funnel').innerHTML = `
+    <div>
+      <div class="stage-top"><span>🚀 ${view.labelDisparo || 'Disparo'}</span><span class="sv"><b>${fmt(t.d)}</b><small>100%</small></span></div>
+      <div class="bar disp"></div>
+    </div>
+    <div>
+      <div class="stage-top"><span>💬 Resposta</span><span class="sv"><b>${fmt(t.r)}</b><small>${fmtPct(respPct)} dos disparos</small></span></div>
+      <div class="bar resp" style="width:${Math.max(respPct, 6)}%"></div>
+    </div>`;
+}
+
+// Cards por segmento só aparecem quando a visão tem mais de um (ex.: Welcome ambos).
+function renderSegments(segs) {
+  const wrap = document.getElementById('segments');
+  if (segs.length <= 1) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  wrap.style.display = '';
+  wrap.innerHTML = segs.map(seg => {
+    const t = sumSegs([seg]);
+    return `<div class="seg-card ${seg}">
+      <div class="seg-name">${SEG_META[seg].label}</div>
+      <div class="seg-stats">
+        <div class="stat"><div class="n">${fmt(t.d)}</div><div class="t">Disparos</div></div>
+        <div class="stat"><div class="n">${fmt(t.r)}</div><div class="t">Respostas</div></div>
+        <div class="stat"><div class="n">${fmtPct(t.taxa)}</div><div class="t">Taxa</div></div>
+      </div></div>`;
+  }).join('');
+}
+
+function lineDatasets(segs, valueFn) {
+  return segs.map(seg => ({
+    label: SEG_META[seg].label,
+    data: DATA.days.map(day => valueFn(DATA.byDay[day][seg])),
+    borderColor: SEG_META[seg].color, backgroundColor: SEG_META[seg].color + '22',
+    fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2,
+  }));
+}
+
+function renderCharts(segs) {
+  const labels = DATA.days.map(dayShort);
+  drawLine('dispChart', 'disp', labels, lineDatasets(segs, c => c.d), false);
+  drawLine('respChart', 'resp', labels, lineDatasets(segs, c => c.r), false);
+  const taxaDs = segs.map(seg => ({
+    label: SEG_META[seg].label,
+    data: DATA.days.map(day => { const c = DATA.byDay[day][seg]; return c.d > 0 ? +(c.r / c.d * 100).toFixed(1) : null; }),
+    borderColor: SEG_META[seg].color, backgroundColor: SEG_META[seg].color + '22',
+    fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2, spanGaps: true,
+  }));
+  drawLine('taxaChart', 'taxa', labels, taxaDs, true);
+}
+
+function drawLine(canvasId, key, labels, datasets, isPct) {
+  if (charts[key]) charts[key].destroy();
+  charts[key] = new Chart(document.getElementById(canvasId), {
+    type: 'line', data: { labels, datasets },
+    options: {
+      responsive: true, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: datasets.length > 1 },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y == null ? '-' : (isPct ? ctx.parsed.y + '%' : ctx.parsed.y)}` } },
+      },
+      scales: { y: { beginAtZero: true, ...(isPct ? { suggestedMax: 100, ticks: { callback: v => v + '%' } } : {}) } },
+    },
+  });
+}
+
+// ---- log de eventos ----
+function eventsQuery() {
+  const view = currentView();
+  const etapa = document.getElementById('etapaFilter').value;
+  let q = `startDate=${curStart}&endDate=${curEnd}&segment=${view.segment}`;
+  if (etapa && etapa !== 'todas') q += `&etapa=${etapa}`;
+  return q;
+}
+
+async function loadEvents(p) {
+  if (p < 0) return;
+  if (currentView().semLog) return; // agente não tem log linha a linha
+  page = p;
+  try {
+    const res = await authFetch(`${API}/api/eventos?${eventsQuery()}&limit=${PAGE}&offset=${p * PAGE}`);
+    const json = await res.json();
+    eventsTotal = json.total;
+    renderEvents(json.events);
+  } catch (e) { console.error(e); }
+}
+
+function segClass(label) {
+  if (label.includes('Novos')) return 'seg-novos';
+  if (label.includes('Recorrentes')) return 'seg-recorrentes';
+  if (label.includes('Carrinho')) return 'seg-carrinho';
+  if (label.includes('TOF')) return 'seg-welcometof';
+  if (label.includes('Up-sell')) return 'seg-upsell';
+  if (label.includes('PageView')) return 'seg-pageview';
+  if (label.includes('novo fluxo') || label === 'Welcome') return 'seg-fluxo';
+  return 'seg-agente';
+}
+
+function renderEvents(events) {
+  document.getElementById('eventsBody').innerHTML = (events || []).map(e => {
+    const [d, t] = e.timestamp.replace('-03:00', '').split('T');
+    const dt = `${isoToBR(d)} ${t}`;
+    return `<tr>
+      <td class="mono">${dt}</td>
+      <td class="${segClass(e.segmento)}">${e.segmento}</td>
+      <td><span class="badge ${e.etapa}">${e.etapa}</span></td>
+      <td class="mono">${e.telefone || '—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px">Nenhum evento no período.</td></tr>';
+
+  const from = eventsTotal === 0 ? 0 : page * PAGE + 1;
+  const to = Math.min((page + 1) * PAGE, eventsTotal);
+  document.getElementById('eventsInfo').textContent = `Mostrando ${from}–${to} de ${fmt(eventsTotal)} eventos`;
+  document.getElementById('prevBtn').disabled = page === 0;
+  document.getElementById('nextBtn').disabled = to >= eventsTotal;
+}
+
+// ---- leads por vendedor ----
+async function loadLeads() {
+  try {
+    const view = currentView();
+    if (view.semLeads) return; // agente não tem leads por vendedor
+    const res = await authFetch(`${API}/api/leads?startDate=${curStart}&endDate=${curEnd}&segment=${view.segment}`);
+    LEADS = await res.json();
+    populateVendorFilter(LEADS.byVendor);
+    renderLeads();
+  } catch (e) { console.error(e); }
+}
+
+function populateVendorFilter(byVendor) {
+  const select = document.getElementById('vendorFilter');
+  const current = select.value;
+  select.innerHTML = '<option value="all">Todos</option>';
+  (byVendor || []).forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = String(v.vendedor_id);
+    opt.textContent = v.vendedor_nome;
+    select.appendChild(opt);
+  });
+  if (current && [...select.options].some(o => o.value === current)) select.value = current;
+}
+
+function renderLeads() {
+  if (!LEADS) return;
+  const byVendor = LEADS.byVendor || [];
+  const daily = LEADS.daily || [];
+  const selected = document.getElementById('vendorFilter').value;
+  const grandTotal = byVendor.reduce((s, v) => s + Number(v.total), 0);
+
+  if (selected === 'all') {
+    const n = byVendor.length;
+    document.getElementById('leadsSummary').innerHTML = `
+      <div class="card"><div class="label">Total de Leads no Período</div><div class="value">${fmt(grandTotal)}</div><div class="sub">${n} vendedor${n === 1 ? '' : 'es'}</div></div>
+      <div class="card"><div class="label">Média por Vendedor</div><div class="value">${n ? fmt(Math.round(grandTotal / n)) : 0}</div><div class="sub">no período selecionado</div></div>`;
+    drawLeadsBar(byVendor, true);
+    drawLeadsTimeline(sumDailyAll(daily), null);
+  } else {
+    const v = byVendor.find(x => String(x.vendedor_id) === selected);
+    const nome = v ? v.vendedor_nome : '-';
+    const total = v ? Number(v.total) : 0;
+    const part = grandTotal ? (total / grandTotal * 100) : 0;
+    document.getElementById('leadsSummary').innerHTML = `
+      <div class="card"><div class="label">Leads de ${nome}</div><div class="value">${fmt(total)}</div><div class="sub">no período selecionado</div></div>
+      <div class="card"><div class="label">Participação no Total</div><div class="value">${fmtPct(part)}</div><div class="sub">${fmt(total)} de ${fmt(grandTotal)}</div></div>`;
+    drawLeadsBar(v ? [v] : [], false);
+    drawLeadsTimeline(dailyForVendor(daily, nome), nome);
+  }
+}
+
+// Soma os leads de todos os vendedores por dia -> [{day, total}]
+function sumDailyAll(daily) {
+  const byDay = {};
+  daily.forEach(r => { byDay[r.day] = (byDay[r.day] || 0) + Number(r.total); });
+  return Object.keys(byDay).sort().map(day => ({ day, total: byDay[day] }));
+}
+
+function dailyForVendor(daily, nome) {
+  return daily.filter(r => r.vendedor_nome === nome)
+    .sort((a, b) => a.day.localeCompare(b.day))
+    .map(r => ({ day: r.day, total: Number(r.total) }));
+}
+
+function drawLeadsBar(byVendor, multi) {
+  const sorted = [...byVendor].sort((a, b) => Number(b.total) - Number(a.total));
+  if (charts.leadsBar) charts.leadsBar.destroy();
+  charts.leadsBar = new Chart(document.getElementById('leadsBar'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(v => v.vendedor_nome),
+      datasets: [{ label: 'Leads', data: sorted.map(v => Number(v.total)), backgroundColor: multi ? LEAD_COLORS : '#1a1a2e' }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.y} leads` } } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+}
+
+function drawLeadsTimeline(series, nome) {
+  const labels = series.map(s => dayShort(s.day));
+  if (charts.leadsTimeline) charts.leadsTimeline.destroy();
+  charts.leadsTimeline = new Chart(document.getElementById('leadsTimeline'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: nome ? `Leads - ${nome}` : 'Leads',
+        data: series.map(s => Number(s.total)),
+        borderColor: '#1a1a2e', backgroundColor: 'rgba(26,26,46,0.1)',
+        fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+}
+
+async function downloadCsv() {
+  try {
+    const res = await authFetch(`${API}/api/eventos?${eventsQuery()}&format=csv`);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `eventos_${curStart}_${curEnd}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+  } catch (e) { console.error(e); alert('Erro ao exportar: ' + e.message); }
+}
+</script>
+</body>
+</html>

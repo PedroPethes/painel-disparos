@@ -9,6 +9,10 @@ período, quantas conversas o bot iniciou (**disparo**), quantas o cliente respo
 (**resposta**) e a **taxa**, além de um **log de eventos** (linha a linha, com telefone)
 exportável em CSV.
 
+**▶ [Abrir o painel (demonstração)](https://pedropethes.github.io/painel-disparos/)** — o
+painel de verdade rodando no navegador com dados fictícios: todas as visões, filtros,
+gráficos, paginação e exportação em CSV funcionam, sem instalar nada.
+
 Cada produto é uma **visão separada** no painel (sem misturar os funis):
 
 | Visão | Bot (id sintético) | Fonte dos disparos | Fonte das respostas |
@@ -342,6 +346,19 @@ tabela de log paginada e exportação em CSV, com 60 dias de histórico.
 A lógica de requisições, derivação e agregação é exatamente a mesma dos modos
 reais — só a fonte dos dados muda.
 
+### Versão publicada (GitHub Pages)
+
+A [demonstração online](https://pedropethes.github.io/painel-disparos/) é esse mesmo
+painel **sem servidor nenhum**: `src/browser-demo.ts` intercepta as chamadas da API no
+navegador e responde com as mesmas funções de agregação do modo demo, então a página
+publicada não diverge do painel real. Para regerar depois de mexer no painel:
+
+```bash
+npm run build:pages   # compila o shim e monta docs/index.html a partir de dashboard/index.html
+```
+
+Publicada em **Settings → Pages → Source: `main` / pasta `/docs`**.
+
 ### Modo completo
 
 Pré-requisitos: Node 18+ e um Postgres local.
@@ -376,11 +393,15 @@ src/
 ├── ingest.ts            # ingestor: janela diária + backfill + webhook (CLI e in-process)
 ├── webhook.ts           # push diário opcional (HMAC + retry)
 ├── server.ts            # API pública (token, rate-limit) + painel + agendador in-process
+├── demo.ts              # dados fictícios do modo demo (PRNG determinístico)
+├── browser-demo.ts      # shim da demo estática: responde à API dentro do navegador
 └── types.ts             # tipos
 migrations/001_init.sql  # schema (events + leads + agente_diario + ingest_runs)
 dashboard/index.html     # painel (opção C: funil + tabela + CSV, por visão)
 test/                    # unit + integração (coorte × log, idempotência, resposta tardia)
 docs/specs/              # spec de design
+docs/index.html          # demo estática publicada no GitHub Pages (gerada)
+tools/build-pages.mjs    # monta a demo estática a partir do painel real
 worker-fluxos/           # Worker Cloudflare: origem dos disparos das visões de fluxo
 DEPLOY.md                # deploy no Railway (serviço único e variante de 2 serviços)
 ```

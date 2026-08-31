@@ -10,6 +10,7 @@
     "dev": "tsx src/server.ts",
     "dev:ingest": "tsx src/ingest.ts",
     "test": "node --import tsx --test test/*.test.ts",
+    "build:pages": "esbuild src/browser-demo.ts --bundle --format=iife --target=es2020 --minify --outfile=docs/demo-api.js && node tools/build-pages.mjs",
     "postinstall": "npm run build"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.7.0",
     "@types/pg": "^8.20.0",
+    "esbuild": "^0.28.1",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }
