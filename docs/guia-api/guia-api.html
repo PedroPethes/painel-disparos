@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Guia da API — Disparos & Respostas</title>
+<style>
+  :root {
+    --bg: #ffffff; --card: #ffffff; --ink: #1a1a2e; --text: #2a2f3a; --muted: #6b7280;
+    --line: #e2e5ea; --accent: #2f6fed; --accent-soft: #eef4ff;
+    --disparo: #2980b9; --disparo-bg: #eaf4ff; --resposta: #1e8e50; --resposta-bg: #e8f8ef;
+    --code-ink: #1a1a2e; --code-surface: #f4f5f8;
+  }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased; font-size: 14px;
+  }
+  .wrap { max-width: 100%; margin: 0 auto; }
+
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+  h1 { font-size: 27px; line-height: 1.15; letter-spacing: -.02em; color: var(--ink); margin: 0 0 8px; }
+  .lede { font-size: 15px; color: var(--muted); margin: 0; max-width: 62ch; }
+
+  section { margin-top: 26px; break-inside: avoid; }
+  h2 { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 14px; color: var(--ink); margin: 16px 0 6px; }
+  p { margin: 0 0 10px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; break-inside: avoid; }
+
+  code.inline { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; font-size: .86em; background: var(--code-surface); color: var(--code-ink); padding: 2px 6px; border-radius: 5px; border: 1px solid var(--line); }
+
+  .method { display: inline-block; font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; color: #fff; background: var(--resposta); padding: 3px 8px; border-radius: 5px; margin-right: 8px; }
+  .endpoint { font-family: ui-monospace, Menlo, monospace; font-size: 14px; color: var(--ink); font-weight: 600; }
+
+  .codeblock { margin: 10px 0; break-inside: avoid; }
+  pre { margin: 0; background: var(--code-surface); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; overflow-x: auto; }
+  pre code { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.6; color: var(--code-ink); white-space: pre-wrap; word-break: break-word; }
+  .tok-flag { color: var(--accent); }
+  .tok-str { color: var(--resposta); }
+  .tok-com { color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tablewrap { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; break-inside: avoid; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; padding: 9px 12px; background: var(--code-surface); border-bottom: 1px solid var(--line); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td code { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--ink); }
+  td .muted { color: var(--muted); }
+
+  .chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .chip.disparo { color: var(--disparo); background: var(--disparo-bg); }
+  .chip.resposta { color: var(--resposta); background: var(--resposta-bg); }
+
+  .callout { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 13px; margin: 10px 0; break-inside: avoid; }
+  .callout strong { color: var(--ink); }
+
+  ul.clean { margin: 0; padding-left: 20px; }
+  ul.clean li { margin: 5px 0; }
+
+  footer { margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Guia da API</p>
+  <h1>Puxar os dados via API</h1>
+  <p class="lede">O painel de <strong>Disparos &amp; Respostas</strong> expõe uma API de leitura. Você informa um período e recebe o log de eventos (cada disparo e cada resposta, com telefone) em JSON ou CSV. Cobre os bots de <strong>Welcome</strong> (Novos/Recorrentes) e de <strong>Carrinho Abandonado</strong> — como visões separadas.</p>
+
+  <section>
+    <h2>Base &amp; autenticação</h2>
+    <div class="card">
+      <p style="margin-bottom:6px"><strong>URL base</strong></p>
+      <p style="margin-bottom:0"><code class="inline">https://SEU-DOMINIO.up.railway.app</code></p>
+      <p style="margin:14px 0 6px"><strong>Autenticação</strong> — envie o token no cabeçalho de toda requisição:</p>
+      <div class="codeblock"><pre><code>Authorization: Bearer <span class="tok-flag">SEU_TOKEN</span></code></pre></div>
+      <div class="callout"><strong>O token é secreto</strong> e foi enviado a você separadamente. Não publique nem versione em repositório — quem tem o token vê os dados (inclusive telefones).</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Endpoint — o log de eventos</h2>
+    <p><span class="method">GET</span><span class="endpoint">/api/eventos</span></p>
+    <p>Aceita os parâmetros abaixo na query string:</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Parâmetro</th><th>Valores</th><th>Padrão</th><th>O que faz</th></tr></thead>
+        <tbody>
+          <tr><td><code>startDate</code></td><td><code>AAAA-MM-DD</code></td><td class="muted">30 dias atrás</td><td>Início do período (fuso de Brasília).</td></tr>
+          <tr><td><code>endDate</code></td><td><code>AAAA-MM-DD</code></td><td class="muted">hoje</td><td>Fim do período (inclusivo).</td></tr>
+          <tr><td><code>segment</code></td><td><code>novos</code> · <code>recorrentes</code> · <code>ambos</code> · <code>carrinho</code></td><td class="muted">todos</td><td>Filtra a visão. <code>ambos</code> = só Welcome; <code>carrinho</code> = carrinho abandonado; vazio = todos.</td></tr>
+          <tr><td><code>etapa</code></td><td><code>disparo</code> · <code>resposta</code> · <code>todas</code></td><td class="muted">todas</td><td>Filtra o tipo de evento.</td></tr>
+          <tr><td><code>format</code></td><td><code>json</code> · <code>csv</code></td><td class="muted">json</td><td>Formato da resposta.</td></tr>
+          <tr><td><code>limit</code></td><td>1–5000</td><td class="muted">1000</td><td>Itens por página (só no JSON).</td></tr>
+          <tr><td><code>offset</code></td><td>≥ 0</td><td class="muted">0</td><td>Paginação (só no JSON).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Exemplos</h2>
+
+    <h3>1. Puxar os eventos de um período (JSON)</h3>
+    <div class="codeblock"><pre><code>curl <span class="tok-flag">-H</span> <span class="tok-str">"Authorization: Bearer SEU_TOKEN"</span> \
+  <span class="tok-str">"https://SEU-DOMINIO.up.railway.app/api/eventos?startDate=2026-07-01&amp;endDate=2026-07-07"</span></code></pre></div>
+
+    <h3>2. Baixar um CSV (abre direto no Excel / Sheets)</h3>
+    <div class="codeblock"><pre><code>curl <span class="tok-flag">-H</span> <span class="tok-str">"Authorization: Bearer SEU_TOKEN"</span> \
+  <span class="tok-str">"https://SEU-DOMINIO.up.railway.app/api/eventos?startDate=2026-07-01&amp;endDate=2026-07-07&amp;format=csv"</span> \
+  <span class="tok-flag">-o</span> eventos.csv</code></pre></div>
+
+    <h3>3. Filtrar (ex.: só as respostas dos recorrentes)</h3>
+    <div class="codeblock"><pre><code>...<span class="tok-str">/api/eventos?startDate=2026-07-01&amp;endDate=2026-07-07&amp;segment=recorrentes&amp;etapa=resposta</span></code></pre></div>
+
+    <div class="callout"><strong>Google Sheets:</strong> como o Sheets não manda cabeçalho, use o token na URL com <code class="inline">&amp;token=SEU_TOKEN</code> e a fórmula <code class="inline">=IMPORTDATA("…&amp;format=csv&amp;token=SEU_TOKEN")</code>. Prático — mas lembre que quem vir a planilha vê o token.</div>
+  </section>
+
+  <section>
+    <h2>O que volta</h2>
+    <p>No <strong>JSON</strong>, cada item de <code class="inline">events</code> tem quatro campos:</p>
+    <div class="codeblock"><pre><code>{
+  <span class="tok-com">"period"</span>: { "startDate": "2026-07-01", "endDate": "2026-07-07" },
+  <span class="tok-com">"total"</span>: 1824,
+  <span class="tok-com">"events"</span>: [
+    {
+      "timestamp": "2026-07-06T09:02:11-03:00",
+      "segmento":  "Welcome Novos",
+      "etapa":     "disparo",
+      "telefone":  "5531xxxxxxxxx"
+    }
+  ]
+}</code></pre></div>
+    <p>No <strong>CSV</strong>, as colunas são: <code class="inline">timestamp,segmento,etapa,telefone</code>.</p>
+    <ul class="clean">
+      <li><strong>timestamp</strong> — instante do evento, no fuso de Brasília (<code class="inline">-03:00</code>).</li>
+      <li><strong>segmento</strong> — <code class="inline">Welcome Novos</code>, <code class="inline">Welcome Recorrentes</code> ou <code class="inline">Carrinho Abandonado</code>.</li>
+      <li><strong>etapa</strong> — <span class="chip disparo">disparo</span> (o bot iniciou a conversa) ou <span class="chip resposta">resposta</span> (o cliente respondeu).</li>
+      <li><strong>telefone</strong> — número do WhatsApp do contato (formato <code class="inline">55DDDNÚMERO</code>) — a chave pra cruzar internamente.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Limites &amp; regras</h2>
+    <ul class="clean">
+      <li><strong>Período:</strong> padrão últimos 30 dias; máximo <strong>180 dias</strong> por requisição.</li>
+      <li><strong>Frequência:</strong> até 60 requisições/minuto e 500/dia por token.</li>
+      <li><strong>Datas</strong> sempre no formato <code class="inline">AAAA-MM-DD</code>.</li>
+      <li><strong>Sem token</strong> ou token inválido &rarr; <code class="inline">401</code>. Período grande demais &rarr; <code class="inline">400</code>.</li>
+    </ul>
+    <p style="margin-top:14px">Precisa só das <strong>contagens</strong> (funil por dia)? Use <code class="inline">GET /api/funil</code> com os mesmos <code class="inline">startDate</code>/<code class="inline">endDate</code>/<code class="inline">segment</code>.</p>
+  </section>
+
+  <footer>
+    Disparos &amp; Respostas · API de leitura. Dúvidas ou um token novo? Fale com o time responsável.
+  </footer>
+</div>
+</body>
+</html>
