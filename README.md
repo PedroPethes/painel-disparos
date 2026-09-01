@@ -13,6 +13,8 @@ exportável em CSV.
 painel de verdade rodando no navegador com dados fictícios: todas as visões, filtros,
 gráficos, paginação e exportação em CSV funcionam, sem instalar nada.
 
+[![Painel de Disparos & Respostas](docs/painel.png)](https://pedropethes.github.io/painel-disparos/)
+
 Cada produto é uma **visão separada** no painel (sem misturar os funis):
 
 | Visão | Bot (id sintético) | Fonte dos disparos | Fonte das respostas |

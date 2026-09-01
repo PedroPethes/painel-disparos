@@ -1,0 +1,4 @@
+# Normaliza fim de linha: evita que regerar a demo estática no Windows apareça
+# como diff de arquivo inteiro só por causa de CRLF.
+* text=auto eol=lf
+*.png binary
